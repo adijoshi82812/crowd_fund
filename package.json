@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3"
+  },
+  "name": "crowd-fund",
+  "version": "1.0.0",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adijoshi82812/crowd_fund.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adijoshi82812/crowd_fund/issues"
+  },
+  "homepage": "https://github.com/adijoshi82812/crowd_fund#readme",
+  "description": ""
+}
