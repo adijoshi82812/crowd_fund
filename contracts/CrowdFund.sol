@@ -9,7 +9,7 @@ interface Token{
 }
 
 contract CrowdFund{
-    Token t = Token(0xa131AD247055FD2e2aA8b156A11bdEc81b9eAD95);
+    Token t = Token(0xd9145CCE52D386f254917e481eB44e9943F39138);
 
     mapping(address => bool) private users;
     address public immutable admin;
@@ -18,11 +18,18 @@ contract CrowdFund{
     mapping(uint => mapping(address => uint)) private user_pool_liquidity;
     address[] private temp_investors;
 
+    uint public donations = 0;
+
     Funds[] public funds;
 
     constructor()
     {
         admin = msg.sender;
+    }
+
+    receive() external payable {
+        uint amount = msg.value;
+        donations += amount;
     }
 
     modifier isUser
@@ -67,6 +74,14 @@ contract CrowdFund{
     event funds_approved(uint, string);
     event pool_filled(uint, string);
     event pool_destroyed(uint, string);
+
+    function withdraw_donations() external onlyAdmin {
+        require(donations >= 0, "Not enough donations");
+        require(address(this).balance >= donations, "Not enough balance in contract");
+
+        (bool success, ) = payable(admin).call{value: donations}("");
+        require(success, "Failed to withdraw");
+    }
 
     function contractCall() 
         external 
