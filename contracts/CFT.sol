@@ -29,7 +29,8 @@ contract CroudFund is ERC20 {
         _mint(_to, _amount);
     }
 
-    function burn(address _to) allowedAddr external {
-        _burn(_to, balanceOf(_to));
+    function burn(address _to, uint _amount) allowedAddr external {
+        require(_amount <= balanceOf(_to), "Not enough tokens");
+        _burn(_to, _amount);
     }
 }

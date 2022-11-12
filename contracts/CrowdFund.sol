@@ -5,11 +5,11 @@ import "./Funds.sol";
 
 interface Token{
     function mint(address _to, uint _amount) external;
-    function burn(address _of) external;
+    function burn(address _of, uint _amount) external;
 }
 
 contract CrowdFund{
-    Token t = Token(0xd9145CCE52D386f254917e481eB44e9943F39138);
+    Token t = Token(0xa131AD247055FD2e2aA8b156A11bdEc81b9eAD95);
 
     mapping(address => bool) private users;
     address public immutable admin;
@@ -185,8 +185,8 @@ contract CrowdFund{
         internal 
     {
         for(uint i = 0; i < funds[_id].investors.length; i++) {
+            t.burn(funds[_id].investors[i], user_pool_liquidity[_id][funds[_id].investors[i]]);
             user_pool_liquidity[_id][funds[_id].investors[i]] = 0;
-            t.burn(funds[_id].investors[i]);
         }
     }
 
@@ -246,6 +246,4 @@ contract CrowdFund{
 
         emit pool_destroyed(_id, "Pools has been successfully destroyed");
     }
-
-    // function get_refund(uint _id) external isUser {}
 }
