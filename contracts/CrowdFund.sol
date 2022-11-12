@@ -1,86 +1,26 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./Funds.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./Modifiers.sol";
+import "./Events.sol";
 
-interface Token{
-    function mint(address _to, uint _amount) external;
-    function burn(address _of, uint _amount) external;
-}
-
-contract CrowdFund{
-    Token t = Token(0xd9145CCE52D386f254917e481eB44e9943F39138);
-
-    mapping(address => bool) private users;
-    address public immutable admin;
-
-    mapping(address => bool) private has_user_applied;
-    mapping(uint => mapping(address => uint)) private user_pool_liquidity;
-    address[] private temp_investors;
-
-    uint public donations = 0;
-
-    Funds[] public funds;
-
-    constructor()
-    {
-        admin = msg.sender;
-    }
+contract CrowdFund is Modifiers, Events {
+    using SafeMath for uint256;
 
     receive() external payable {
         uint amount = msg.value;
         donations += amount;
     }
 
-    modifier isUser
-    {
-        require(users[msg.sender] == true, "Not a user");
-        _;
-    }
-
-    modifier onlyAdmin
-    {
-        require(msg.sender == admin, "Not an admin");
-        _;
-    }
-
-    modifier isNotApproved
-    (
-        uint _id
-    )
-    {
-        require(funds[_id].is_approved == false, "Already approved");
-        _;
-    }
-
-    modifier isApproved
-    (
-        uint _id
-    )
-    {
-        require(funds[_id].is_approved == true, "Funds not approved yet");
-        _;
-    }
-
-    modifier isPoolFilled
-    (
-        uint _id
-    )
-    {
-        require(!funds[_id].is_filled, "Pool already full");
-        _;
-    }
-
-    event funds_approved(uint, string);
-    event pool_filled(uint, string);
-    event pool_destroyed(uint, string);
-
     function withdraw_donations() external onlyAdmin {
-        require(donations >= 0, "Not enough donations");
-        require(address(this).balance >= donations, "Not enough balance in contract");
+        require(donations > 0, "Not enough donations");
+        require(address(this).balance > donations, "Not enough balance in contract");
 
         (bool success, ) = payable(admin).call{value: donations}("");
         require(success, "Failed to withdraw");
+
+        emit withdraw_donations_event("Donations has been withdrawn");
     }
 
     function contractCall() 
@@ -88,6 +28,8 @@ contract CrowdFund{
     {
         require(users[msg.sender] == false, "Already a user");
         users[msg.sender] = true;
+
+        emit register_user_event(msg.sender, "User has been successfully registered");
     }
 
     function requestFundApproval
@@ -97,55 +39,29 @@ contract CrowdFund{
     ) 
         external 
         isUser 
+        has_user_applied_for_funding(msg.sender)
+        check_name_already_exists(_fundName)
         returns(uint) 
     {
-        require(has_user_applied_for_funding(msg.sender) == false, "You have already applied for funding");
-        require(check_name_already_exists(_fundName) == false, "Name already exists");
-
-        Funds memory p = Funds(
-            _fundName,
-            msg.sender,
-            _amount * 1000000000000000000 * 1000,
-            temp_investors,
-            0,
-            false,
-            false
-        );
+        Funds memory p = Funds({
+            name: _fundName,
+            owner: msg.sender,
+            amount_asked: SafeMath.mul(_amount, SafeMath.mul(token_diversity, token_impound)),
+            investors: temp_investors,
+            funds_raised: 0,
+            is_approved: false,
+            is_filled: false
+        });
         funds.push(p);
+        unique_names[_fundName] = true;
 
         has_user_applied[msg.sender] = true;
+        emit request_fund_approval_event(
+            funds.length - 1, 
+            "Your funds has been sent for approval with the given id"
+        );
 
         return funds.length;
-    }
-
-    function has_user_applied_for_funding
-    (
-        address _user
-    ) 
-        internal 
-        view 
-        returns(bool) 
-    {
-        return has_user_applied[_user];
-    }
-
-    function check_name_already_exists
-    (
-        string memory _name
-    ) 
-        internal 
-        view 
-        returns(bool) 
-    {
-        bool flag = false;
-        for(uint i = 0; i < funds.length; i++) {
-            if(keccak256(abi.encodePacked(funds[i].name)) == keccak256(abi.encodePacked(_name))) {
-                flag = true;
-                return flag;
-            }
-        }
-
-        return flag;
     }
 
     function approve_funding
@@ -166,24 +82,30 @@ contract CrowdFund{
     ) 
         external 
         isUser 
-        isApproved(_id) 
-        isPoolFilled(_id) 
+        isApproved(_id)
         payable 
     {
         require(address(msg.sender).balance > 0, "Not enough balance");
         require(msg.value > 0, "Not enough funding");
         require(msg.value < address(msg.sender).balance, "Not enough balance");
 
-        uint amount = msg.value * 1000;
-        uint totalAmount = funds[_id].funds_raised + amount;
+        uint amount = SafeMath.mul(msg.value, 1000);
+        uint totalAmount = SafeMath.add(funds[_id].funds_raised, amount);
         require(totalAmount <= funds[_id].amount_asked, "Overflow");
-        funds[_id].funds_raised += amount;
+        funds[_id].funds_raised = SafeMath.add(
+            funds[_id].funds_raised,
+            amount
+        );
 
-        if(!is_second_investment(_id, msg.sender)){
+        if(unique_investors_in_pool[_id][msg.sender] == false){
+            unique_investors_in_pool[_id][msg.sender] = true;
             funds[_id].investors.push(msg.sender);
         }
 
-        user_pool_liquidity[_id][msg.sender] += amount;
+        user_pool_liquidity[_id][msg.sender] = SafeMath.add(
+            user_pool_liquidity[_id][msg.sender],
+            amount
+        );
         t.mint(msg.sender, amount);
 
         if(is_pool_filled(_id)){
@@ -203,26 +125,6 @@ contract CrowdFund{
             t.burn(funds[_id].investors[i], user_pool_liquidity[_id][funds[_id].investors[i]]);
             user_pool_liquidity[_id][funds[_id].investors[i]] = 0;
         }
-    }
-
-    function is_second_investment
-    (
-        uint _id, 
-        address _user
-    ) 
-        internal 
-        view 
-        returns(bool) 
-    {
-        bool flag = false;
-        for(uint i = 0; i < funds[_id].investors.length; i++) {
-            if(_user == funds[_id].investors[i]){
-                flag = true;
-                return flag;
-            }
-        }
-
-        return flag;
     }
 
     function is_pool_filled
@@ -249,7 +151,7 @@ contract CrowdFund{
         internal 
     {
         require(is_pool_filled(_id), "Not yet full");
-        uint amount = funds[_id].amount_asked / 1000;
+        uint amount = SafeMath.div(funds[_id].amount_asked, 1000);
         (bool success, ) = payable(funds[_id].owner).call{value: amount}("");
 
         require(success, "Failed to withdraw");
@@ -260,5 +162,33 @@ contract CrowdFund{
         delete funds[_id];
 
         emit pool_destroyed(_id, "Pools has been successfully destroyed");
+    }
+
+    function view_fund_details
+    (
+        uint _id
+    ) 
+    external 
+    view 
+    returns
+    (
+        string memory Name,
+        address Owner,
+        uint Amount_asked,
+        uint Funds_raised,
+        bool Is_approved,
+        bool Is_filled,
+        address[] memory Investors
+    ) 
+    {
+        return (
+            Name = funds[_id].name,
+            Owner = funds[_id].owner,
+            Amount_asked = funds[_id].amount_asked,
+            Funds_raised = funds[_id].funds_raised,
+            Is_approved = funds[_id].is_approved,
+            Is_filled = funds[_id].is_approved,
+            Investors = funds[_id].investors
+        );
     }
 }

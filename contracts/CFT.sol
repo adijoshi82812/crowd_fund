@@ -2,26 +2,19 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CroudFund is ERC20 {
+contract CroudFund is ERC20, Ownable {
     address allowedAddress;
-    address admin;
 
-    constructor() ERC20("CroudFundToken", "CFT") {
-        admin = msg.sender;
-    }
-
-    modifier onlyAdmin {
-        require(msg.sender == admin, "Not an admin");
-        _;
-    }
+    constructor() ERC20("CroudFundToken", "CFT") {}
 
     modifier allowedAddr {
         require(msg.sender == allowedAddress, "Unauthorized");
         _;
     }
 
-    function alloweAddress(address _addr) onlyAdmin external {
+    function alloweAddress(address _addr) onlyOwner external {
         allowedAddress = _addr;
     }
 
