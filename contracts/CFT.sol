@@ -26,4 +26,8 @@ contract CroudFund is ERC20, Ownable {
         require(_amount <= balanceOf(_to), "Not enough tokens");
         _burn(_to, _amount);
     }
+
+    function balance_Of(address _account) external allowedAddr view returns(uint) {
+        return balanceOf(_account);
+    }
 }

@@ -23,7 +23,7 @@ contract CrowdFund is Modifiers, Events {
         emit withdraw_donations_event("Donations has been withdrawn");
     }
 
-    function contractCall() 
+    function contract_call() 
         external 
     {
         require(users[msg.sender] == false, "Already a user");
@@ -32,15 +32,15 @@ contract CrowdFund is Modifiers, Events {
         emit register_user_event(msg.sender, "User has been successfully registered");
     }
 
-    function requestFundApproval
+    function request_fund_approval
     (
         string memory _fundName, 
         uint _amount
     ) 
         external 
         isUser 
-        has_user_applied_for_funding(msg.sender)
-        check_name_already_exists(_fundName)
+        hasUserAppliedForFunding(msg.sender)
+        checkNameAlreadyExists(_fundName)
         returns(uint) 
     {
         Funds memory p = Funds({
@@ -74,7 +74,7 @@ contract CrowdFund is Modifiers, Events {
     {
         funds[_id].is_approved = true;
         approved_funds = SafeMath.add(approved_funds, 1);
-        emit funds_approved(_id, funds[_id].name);
+        emit funds_approved_event(_id, funds[_id].name);
     }
 
     function fund_a_pool
@@ -89,6 +89,7 @@ contract CrowdFund is Modifiers, Events {
         require(address(msg.sender).balance > 0, "Not enough balance");
         require(msg.value > 0, "Not enough funding");
         require(msg.value < address(msg.sender).balance, "Not enough balance");
+        require(funds[_id].owner != msg.sender, "Owner's cannot fund");
 
         uint amount = SafeMath.mul(msg.value, 1000);
         uint totalAmount = SafeMath.add(funds[_id].funds_raised, amount);
@@ -117,7 +118,7 @@ contract CrowdFund is Modifiers, Events {
 
         if(is_pool_filled(_id)){
             funds[_id].is_filled = true;
-            emit pool_filled(_id, "Specified pool has been filled");
+            emit pool_filled_event(_id, "Specified pool has been filled");
             send_funds_and_destory_pool(_id);
         }
     }
@@ -169,7 +170,7 @@ contract CrowdFund is Modifiers, Events {
 
         delete funds[_id];
 
-        emit pool_destroyed(_id, "Pools has been successfully destroyed");
+        emit pool_destroyed_event(_id, "Pools has been successfully destroyed");
     }
 
     function view_fund_details
@@ -209,16 +210,79 @@ contract CrowdFund is Modifiers, Events {
         for(uint i = 0; i < funds[_id].investors.length; i++) {
             if(funds[_id].investors[i] == msg.sender) {
                 flag = true;
-                delete funds[_id].investors[i];
+                uint length = SafeMath.sub(funds[_id].investors.length, 1);
+                address temp = funds[_id].investors[length];
+                funds[_id].investors[length] = funds[_id].investors[i];
+                funds[_id].investors[i] = temp;
+                funds[_id].investors.pop();
+
+                break;
             }
         }
         require(flag, "You have not invested in this pool");
-        funds[_id].funds_raised = SafeMath.sub(funds[_id].funds_raised, amount);
+        delete unique_investors_in_pool[_id][msg.sender];
+        funds[_id].funds_raised = SafeMath.sub(funds[_id].funds_raised, user_pool_liquidity[_id][msg.sender]);
         t.burn(msg.sender, user_pool_liquidity[_id][msg.sender]);
 
         delete user_pool_liquidity[_id][msg.sender];
 
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Not able to withdraw");
+    }
+
+    function transer_ownership(address _to) external onlyAdmin {
+        require(accept_ownership == false, "You have already sent the ownership to someone");
+
+        new_owner = _to;
+        accept_ownership = true;
+    }
+
+    function _accept_ownership() external {
+        require(msg.sender == new_owner, "You cannot claim the ownership role");
+        require(accept_ownership == true, "You have already accepted the ownership");
+
+        admin = new_owner;
+    }
+
+    function transfer_funds(uint _from, uint _to) external isUser {
+        require(unique_investors_in_pool[_from][msg.sender] == true, "You have not invested inside this pool");
+        require(user_pool_liquidity[_from][msg.sender] > 0, "Not enough liquidity");
+
+        require(funds[_to].is_approved, "Not yet approved");
+        require(funds[_to].is_filled == false, "Pool is full");
+
+        uint amount = user_pool_liquidity[_from][msg.sender];
+        amount = SafeMath.add(amount, funds[_from].funds_raised);
+
+        require(amount <= funds[_to].amount_asked, "Overflow");
+
+        unique_investors_in_pool[_from][msg.sender] = false;
+        amount = user_pool_liquidity[_from][msg.sender];
+        user_pool_liquidity[_from][msg.sender] = 0;
+
+        funds[_from].funds_raised = SafeMath.sub(funds[_from].funds_raised, amount);
+        funds[_to].funds_raised = SafeMath.add(funds[_to].funds_raised, amount);
+        user_pool_liquidity[_to][msg.sender] = amount;
+
+        if(unique_investors_in_pool[_to][msg.sender] == false){
+            unique_investors_in_pool[_to][msg.sender] = true;
+            funds[_to].investors.push(msg.sender);
+        }
+
+         for(uint i = 0; i < funds[_from].investors.length; i++) {
+            if(funds[_from].investors[i] == msg.sender) {
+                uint length = SafeMath.sub(funds[_from].investors.length, 1);
+                address temp = funds[_from].investors[length];
+                funds[_from].investors[length] = funds[_from].investors[i];
+                funds[_from].investors[i] = temp;
+                funds[_from].investors.pop();
+
+                break;
+            }
+        }
+    }
+
+    function check_liquidity() external isUser view returns(uint) {
+        return t.balance_Of(msg.sender);
     }
 }

@@ -43,7 +43,7 @@ contract Modifiers is Variables {
         _;
     }
 
-    modifier has_user_applied_for_funding
+    modifier hasUserAppliedForFunding
     (
         address user
     )
@@ -52,7 +52,7 @@ contract Modifiers is Variables {
         _;
     }
 
-    modifier check_name_already_exists
+    modifier checkNameAlreadyExists
     (
         string memory name
     )

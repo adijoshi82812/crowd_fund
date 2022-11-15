@@ -6,6 +6,7 @@ import "./Funds.sol";
 interface Token{
     function mint(address _to, uint _amount) external;
     function burn(address _of, uint _amount) external;
+    function balance_Of(address _account) external view returns(uint);
 }
 
 contract Variables {
@@ -15,7 +16,10 @@ contract Variables {
     uint internal token_impound = 10 ** 3;
 
     mapping(address => bool) public users;
-    address public immutable admin;
+    address public admin;
+
+    address internal new_owner;
+    bool internal accept_ownership;
 
     mapping(address => bool) internal has_user_applied;
     mapping(uint => mapping(address => uint)) internal user_pool_liquidity;
@@ -34,5 +38,6 @@ contract Variables {
 
     constructor() {
         admin = msg.sender;
+        new_owner = msg.sender;
     }
 }

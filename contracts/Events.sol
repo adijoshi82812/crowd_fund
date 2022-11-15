@@ -5,7 +5,7 @@ contract Events {
     event withdraw_donations_event(string);
     event register_user_event(address, string);
     event request_fund_approval_event(uint, string);
-    event funds_approved(uint, string);
-    event pool_filled(uint, string);
-    event pool_destroyed(uint, string);
+    event funds_approved_event(uint, string);
+    event pool_filled_event(uint, string);
+    event pool_destroyed_event(uint, string);
 }
