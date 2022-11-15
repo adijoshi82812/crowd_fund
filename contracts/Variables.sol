@@ -14,7 +14,7 @@ contract Variables {
     uint internal token_diversity = 10 ** 18;
     uint internal token_impound = 10 ** 3;
 
-    mapping(address => bool) internal users;
+    mapping(address => bool) public users;
     address public immutable admin;
 
     mapping(address => bool) internal has_user_applied;
@@ -27,6 +27,10 @@ contract Variables {
 
     mapping(string => bool) public unique_names;
     mapping(uint => mapping(address => bool)) internal unique_investors_in_pool;
+
+    uint public total_funds = 0;
+    uint public completed_funds = 0;
+    uint public approved_funds = 0;
 
     constructor() {
         admin = msg.sender;

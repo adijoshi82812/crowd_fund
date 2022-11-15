@@ -73,6 +73,7 @@ contract CrowdFund is Modifiers, Events {
         isNotApproved(_id) 
     {
         funds[_id].is_approved = true;
+        approved_funds = SafeMath.add(approved_funds, 1);
         emit funds_approved(_id, funds[_id].name);
     }
 
@@ -107,6 +108,12 @@ contract CrowdFund is Modifiers, Events {
             amount
         );
         t.mint(msg.sender, amount);
+
+        uint diversity = 10 ** 18;
+        approved_funds = SafeMath.add(
+            approved_funds,
+            SafeMath.div(msg.value, diversity)
+        );
 
         if(is_pool_filled(_id)){
             funds[_id].is_filled = true;
@@ -151,9 +158,10 @@ contract CrowdFund is Modifiers, Events {
         internal 
     {
         require(is_pool_filled(_id), "Not yet full");
+
         uint amount = SafeMath.div(funds[_id].amount_asked, 1000);
         (bool success, ) = payable(funds[_id].owner).call{value: amount}("");
-
+        completed_funds = SafeMath.add(completed_funds, 1);
         require(success, "Failed to withdraw");
         burn_liquidity(_id);
 
@@ -187,8 +195,30 @@ contract CrowdFund is Modifiers, Events {
             Amount_asked = funds[_id].amount_asked,
             Funds_raised = funds[_id].funds_raised,
             Is_approved = funds[_id].is_approved,
-            Is_filled = funds[_id].is_approved,
+            Is_filled = funds[_id].is_filled,
             Investors = funds[_id].investors
         );
+    }
+
+    function get_refund(uint _id) external isUser {
+        require(funds[_id].is_approved, "This pool is not valid");
+        require(funds[_id].is_filled == false, "This pool is full, cannot get refund");
+        uint amount = SafeMath.div(user_pool_liquidity[_id][msg.sender], token_impound);
+
+        bool flag = false;
+        for(uint i = 0; i < funds[_id].investors.length; i++) {
+            if(funds[_id].investors[i] == msg.sender) {
+                flag = true;
+                delete funds[_id].investors[i];
+            }
+        }
+        require(flag, "You have not invested in this pool");
+        funds[_id].funds_raised = SafeMath.sub(funds[_id].funds_raised, amount);
+        t.burn(msg.sender, user_pool_liquidity[_id][msg.sender]);
+
+        delete user_pool_liquidity[_id][msg.sender];
+
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Not able to withdraw");
     }
 }
