@@ -17,6 +17,8 @@ contract CrowdFund is Modifiers, Events {
         require(donations > 0, "Not enough donations");
         require(address(this).balance >= donations, "Not enough balance in contract");
 
+        donations = 0;
+
         (bool success, ) = payable(admin).call{value: donations}("");
         require(success, "Failed to withdraw");
 
