@@ -15,7 +15,7 @@ contract CrowdFund is Modifiers, Events {
 
     function withdraw_donations() external onlyAdmin {
         require(donations > 0, "Not enough donations");
-        require(address(this).balance > donations, "Not enough balance in contract");
+        require(address(this).balance >= donations, "Not enough balance in contract");
 
         (bool success, ) = payable(admin).call{value: donations}("");
         require(success, "Failed to withdraw");
@@ -24,7 +24,7 @@ contract CrowdFund is Modifiers, Events {
     }
 
     function contract_call() 
-        external 
+        external
     {
         require(users[msg.sender] == false, "Already a user");
         users[msg.sender] = true;
@@ -73,7 +73,7 @@ contract CrowdFund is Modifiers, Events {
         isNotApproved(_id) 
     {
         funds[_id].is_approved = true;
-        approved_funds = SafeMath.add(approved_funds, 1);
+        approved_pools = SafeMath.add(approved_pools, 1);
         emit funds_approved_event(_id, funds[_id].name);
     }
 
@@ -99,6 +99,8 @@ contract CrowdFund is Modifiers, Events {
             amount
         );
 
+        total_funds_raised = SafeMath.add(total_funds_raised, amount);
+
         if(unique_investors_in_pool[_id][msg.sender] == false){
             unique_investors_in_pool[_id][msg.sender] = true;
             funds[_id].investors.push(msg.sender);
@@ -109,12 +111,6 @@ contract CrowdFund is Modifiers, Events {
             amount
         );
         t.mint(msg.sender, amount);
-
-        uint diversity = 10 ** 18;
-        approved_funds = SafeMath.add(
-            approved_funds,
-            SafeMath.div(msg.value, diversity)
-        );
 
         if(is_pool_filled(_id)){
             funds[_id].is_filled = true;
@@ -162,7 +158,7 @@ contract CrowdFund is Modifiers, Events {
 
         uint amount = SafeMath.div(funds[_id].amount_asked, 1000);
         (bool success, ) = payable(funds[_id].owner).call{value: amount}("");
-        completed_funds = SafeMath.add(completed_funds, 1);
+        completed_pools = SafeMath.add(completed_pools, 1);
         require(success, "Failed to withdraw");
         burn_liquidity(_id);
 
@@ -224,6 +220,8 @@ contract CrowdFund is Modifiers, Events {
         funds[_id].funds_raised = SafeMath.sub(funds[_id].funds_raised, user_pool_liquidity[_id][msg.sender]);
         t.burn(msg.sender, user_pool_liquidity[_id][msg.sender]);
 
+        total_funds_raised = SafeMath.sub(total_funds_raised, user_pool_liquidity[_id][msg.sender]);
+
         delete user_pool_liquidity[_id][msg.sender];
 
         (bool success, ) = payable(msg.sender).call{value: amount}("");
@@ -245,6 +243,7 @@ contract CrowdFund is Modifiers, Events {
     }
 
     function transfer_funds(uint _from, uint _to) external isUser {
+        require(funds[_to].owner != msg.sender, "Owner's cannot fund their own pool");
         require(unique_investors_in_pool[_from][msg.sender] == true, "You have not invested inside this pool");
         require(user_pool_liquidity[_from][msg.sender] > 0, "Not enough liquidity");
 
@@ -285,4 +284,16 @@ contract CrowdFund is Modifiers, Events {
     function check_liquidity() external isUser view returns(uint) {
         return t.balance_Of(msg.sender);
     }
+
+    // function get_price() external view returns(int) {
+    //     (
+    //         /* uint80 roundId */,
+    //         int price,
+    //         /* uint startedAt */,
+    //         /* uint timeStamp */,
+    //         /* uint80 answeredInRound */
+    //     ) = priceFeed.latestRoundData();
+
+    //     return price;
+    // }
 }
