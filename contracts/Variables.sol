@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-// import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./Funds.sol";
 
 interface Token{
@@ -11,7 +11,7 @@ interface Token{
 }
 
 contract Variables {
-    // AggregatorV3Interface internal priceFeed;
+    AggregatorV3Interface internal priceFeed;
     Token internal t;
 
     uint internal token_diversity = 10 ** 18;
@@ -41,7 +41,7 @@ contract Variables {
     constructor() {
         admin = msg.sender;
         new_owner = msg.sender;
-        // priceFeed = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
-        t = Token(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
+        priceFeed = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
+        t = Token(0x528070E817Ce9fccc04FA73693b8807035a93642);
     }
 }
