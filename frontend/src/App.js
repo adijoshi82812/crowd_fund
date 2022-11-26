@@ -13,13 +13,18 @@ import { useEffect } from "react";
 
 export const App = () => {
   const dispatch = useDispatch();
-  const { update_donations, update_funds_approved, update_total_funds } =
-    bindActionCreators(actionCreators, dispatch);
+  const {
+    update_donations,
+    update_funds_approved,
+    update_total_funds,
+    update_is_user,
+  } = bindActionCreators(actionCreators, dispatch);
 
   const preload = () => {
     update_donations();
     update_funds_approved();
     update_total_funds();
+    update_is_user();
   };
 
   useEffect(() => {
@@ -29,11 +34,11 @@ export const App = () => {
   return (
     <div className="wrapper">
       <Nav />
-      <Sidebar />
+      <Sidebar preload={preload} />
       <Dashboard />
       <Footer />
       <ControlSideBar />
-      <Modal />
+      <Modal preload={preload} />
     </div>
   );
 };

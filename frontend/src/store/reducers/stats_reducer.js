@@ -37,3 +37,13 @@ export const approved_pools_reducer = (state = 0, action) => {
       return state;
   }
 };
+
+export const is_user_reducer = (state = false, action) => {
+  switch (action.type) {
+    case "update_is_user":
+      return (state = action.payload);
+
+    default:
+      return state;
+  }
+};

@@ -1,4 +1,25 @@
-export const Sidebar = () => {
+import { useSelector, useDispatch } from "react-redux";
+import { bindActionCreators } from "redux";
+import { actionCreators } from "../store";
+
+import { Contract } from "../web3";
+
+export const Sidebar = ({ preload }) => {
+  const is_user = useSelector((state) => state.is_user);
+  const account = useSelector((state) => state.account);
+
+  const dispatch = useDispatch();
+  const { update_account } = bindActionCreators(actionCreators, dispatch);
+
+  const handle_cotract_call = async () => {
+    try {
+      await Contract.methods.contract_call().send({ from: account });
+      preload();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <aside className="main-sidebar sidebar-dark-primary elevation-4">
       <span style={{ cursor: "pointer" }} className="brand-link">
@@ -45,13 +66,35 @@ export const Sidebar = () => {
 
         <div className="form-inline mt-2">
           <div className="input-group">
-            <button
-              className="btn btn-block btn-outline-success"
-              data-toggle="modal"
-              data-target="#modal-default"
-            >
-              Create Fund Request
-            </button>
+            {account === null ? (
+              <button
+                className="btn btn-block btn-outline-primary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  update_account();
+                }}
+              >
+                Connect wallet
+              </button>
+            ) : is_user ? (
+              <button
+                className="btn btn-block btn-outline-success"
+                data-toggle="modal"
+                data-target="#modal-default"
+              >
+                Create Fund Request
+              </button>
+            ) : (
+              <button
+                className="btn btn-block btn-outline-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handle_cotract_call();
+                }}
+              >
+                Contract Call
+              </button>
+            )}
           </div>
         </div>
       </div>

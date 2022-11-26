@@ -2,13 +2,6 @@ import Web3 from "web3";
 
 const abi = [
   {
-    inputs: [],
-    name: "_accept_ownership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
     inputs: [
       {
         internalType: "uint256",
@@ -16,7 +9,7 @@ const abi = [
         type: "uint256",
       },
     ],
-    name: "approve_funding",
+    name: "approve_fund_request",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -31,123 +24,8 @@ const abi = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "destroy_pool",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "fund_a_pool",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        indexed: false,
         internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    name: "funds_approved_event",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "get_refund",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    name: "pool_destroyed_event",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    name: "pool_filled_event",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    name: "register_user_event",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_fundName",
+        name: "_name",
         type: "string",
       },
       {
@@ -156,45 +34,7 @@ const abi = [
         type: "uint256",
       },
     ],
-    name: "request_fund_approval",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    name: "request_fund_approval_event",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_to",
-        type: "address",
-      },
-    ],
-    name: "transer_ownership",
+    name: "create_fund_request",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -203,26 +43,19 @@ const abi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "_from",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_to",
+        name: "_id",
         type: "uint256",
       },
     ],
-    name: "transfer_funds",
+    name: "invest_in_pool",
     outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
     inputs: [],
-    name: "withdraw_donations",
-    outputs: [],
     stateMutability: "nonpayable",
-    type: "function",
+    type: "constructor",
   },
   {
     anonymous: false,
@@ -230,68 +63,42 @@ const abi = [
       {
         indexed: false,
         internalType: "string",
-        name: "",
+        name: "message",
         type: "string",
       },
     ],
-    name: "withdraw_donations_event",
+    name: "Log",
     type: "event",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_id",
+        type: "uint256",
+      },
+    ],
+    name: "withdraw_funds",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_id",
+        type: "uint256",
+      },
+    ],
+    name: "withdraw_pool",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
   },
   {
     stateMutability: "payable",
     type: "receive",
-  },
-  {
-    inputs: [],
-    name: "admin",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "approved_pools",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "check_liquidity",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "completed_pools",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
   },
   {
     inputs: [],
@@ -308,31 +115,11 @@ const abi = [
   },
   {
     inputs: [],
-    name: "get_price",
+    name: "funded_pools",
     outputs: [
       {
-        internalType: "uint80",
-        name: "Id",
-        type: "uint80",
-      },
-      {
-        internalType: "int256",
-        name: "Price",
-        type: "int256",
-      },
-      {
         internalType: "uint256",
-        name: "Start",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "Time",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "RoundAnswer",
+        name: "",
         type: "uint256",
       },
     ],
@@ -341,7 +128,119 @@ const abi = [
   },
   {
     inputs: [],
-    name: "total_funds_raised",
+    name: "funds_approved",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "get_token_address",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "has_user_created_pool",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "pools",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "id",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "name",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "admin",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "funds_asked",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "funds_received",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "is_approved",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "is_filled",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "is_valid",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "pools_count",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "total_requests",
     outputs: [
       {
         internalType: "uint256",
@@ -390,58 +289,9 @@ const abi = [
     stateMutability: "view",
     type: "function",
   },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "view_fund_details",
-    outputs: [
-      {
-        internalType: "string",
-        name: "Name",
-        type: "string",
-      },
-      {
-        internalType: "address",
-        name: "Owner",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "Amount_asked",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "Funds_raised",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "Is_approved",
-        type: "bool",
-      },
-      {
-        internalType: "bool",
-        name: "Is_filled",
-        type: "bool",
-      },
-      {
-        internalType: "address[]",
-        name: "Investors",
-        type: "address[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
 ];
 
-const addr = "0xe6AA49A2fd3B0f3E5DC0dED3b13c1DDD68c31DA1";
+const addr = "0x86e11AA17E9F30aF7127b1B04c5a5730CeE69173";
 
 export const { ethereum } = window;
 const web3 = new Web3(ethereum);

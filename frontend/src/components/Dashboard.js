@@ -1,10 +1,56 @@
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { Contract } from "../web3";
 
 export const Dashboard = () => {
   const donations = useSelector((state) => state.donations);
   const funds_approved = useSelector((state) => state.approved_pools);
   const total_funds = useSelector((state) => state.total_funds);
   const completed_funds = useSelector((state) => state.completed_pools);
+
+  const [data, setData] = useState([]);
+
+  const get_list = async () => {
+    try {
+      const pools_count = await Contract.methods.pools_count().call();
+      const temp_data_arr = [];
+      if (pools_count !== 0) {
+        for (let i = pools_count - 1; i >= 0; i--) {
+          const temp_data = await Contract.methods.pools(i).call();
+          temp_data_arr.push(temp_data);
+        }
+      }
+      setData(temp_data_arr);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const display_list = data.map((data) => (
+    <tr>
+      <td>{data.name}</td>
+      <td>{data.admin}</td>
+      <td>{data.is_approved ? "active" : "inactive"}</td>
+      <td>{data.funds_asked / Math.pow(10, 18)} $ETH</td>
+      <td>{data.funds_received}</td>
+      <td>
+        {data.is_approved && !data.isFilled && data.is_valid ? (
+          <button className="btn btn-block btn-outline-success btn-xs">
+            Invest
+          </button>
+        ) : (
+          <button className="btn btn-block btn-outline-danger btn-xs disabled">
+            Invest
+          </button>
+        )}
+      </td>
+    </tr>
+  ));
+
+  useEffect(() => {
+    get_list();
+    console.log(data);
+  }, []);
 
   return (
     <div className="content-wrapper">
@@ -96,71 +142,7 @@ export const Dashboard = () => {
                     <th></th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>Pool1</td>
-                    <td>0x00000000000000000000</td>
-                    <td>
-                      <span className="badge badge-warning">
-                        Pending Approval
-                      </span>
-                    </td>
-                    <td>2 ETH</td>
-                    <td>2 ETH</td>
-                    <td>
-                      <button className="btn btn-block btn-xs btn-success disabled">
-                        Invest
-                      </button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Pool2</td>
-                    <td>0x00000000000000000000</td>
-                    <td>
-                      <span className="badge badge-danger">Pool filled</span>
-                    </td>
-                    <td>2 ETH</td>
-                    <td>2 ETH</td>
-                    <td>
-                      <button className="btn btn-block btn-xs btn-danger disabled">
-                        Invest
-                      </button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Pool3</td>
-                    <td>0x00000000000000000000</td>
-                    <td>
-                      <span className="badge badge-success">In progress</span>
-                    </td>
-                    <td>2 ETH</td>
-                    <td>2 ETH</td>
-                    <td>
-                      <button className="btn btn-block btn-xs btn-success">
-                        Invest
-                      </button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Pool4</td>
-                    <td>0x00000000000000000000</td>
-                    <td>
-                      <span className="badge badge-warning">
-                        Pending Approval
-                      </span>
-                    </td>
-                    <td>2 ETH</td>
-                    <td>2 ETH</td>
-                    <td>
-                      <button className="btn btn-block btn-xs btn-success disabled">
-                        Invest
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
+                <tbody>{display_list}</tbody>
               </table>
             </div>
           </div>

@@ -5,6 +5,7 @@ import {
   approved_pools_reducer,
   total_funds_reducer,
   completed_pools_reducer,
+  is_user_reducer,
 } from "./stats_reducer";
 
 export const reducers = combineReducers({
@@ -13,4 +14,5 @@ export const reducers = combineReducers({
   approved_pools: approved_pools_reducer,
   total_funds: total_funds_reducer,
   completed_pools: completed_pools_reducer,
+  is_user: is_user_reducer,
 });
