@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { Contract } from "../web3";
 
 export const Modal = (preload) => {
+  /* global BigInt */
   const [name, setName] = useState();
   const [amount, setAmount] = useState();
   const account = useSelector((state) => state.account);
@@ -16,8 +17,9 @@ export const Modal = (preload) => {
           .call();
         if (!has_user_created_pool) {
           const result = await Contract.methods
-            .create_fund_request(name, amount)
+            .create_fund_request(name, BigInt(amount * Math.pow(10, 18)))
             .send({ from: account });
+          window.location.reload(false);
           return result;
         } else {
           throw new Error("You have already created a request");

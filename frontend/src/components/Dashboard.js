@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Contract } from "../web3";
+import { bindActionCreators } from "redux";
+import { actionCreators } from "../store";
 
 export const Dashboard = () => {
   const donations = useSelector((state) => state.donations);
   const funds_approved = useSelector((state) => state.approved_pools);
   const total_funds = useSelector((state) => state.total_funds);
   const completed_funds = useSelector((state) => state.completed_pools);
+  const dispatch = useDispatch();
+  const { update_pool_id } = bindActionCreators(actionCreators, dispatch);
 
   const [data, setData] = useState([]);
 
@@ -29,13 +33,37 @@ export const Dashboard = () => {
   const display_list = data.map((data) => (
     <tr>
       <td>{data.name}</td>
-      <td>{data.admin}</td>
+      <td>
+        {data.admin.slice(0, 5).toLowerCase()}...
+        {data.admin.slice(38).toLowerCase()}&nbsp;
+        <i
+          className="ion ion-clipboard"
+          style={{ cursor: "pointer" }}
+          title="Copy to clipboard"
+          onClick={(e) => {
+            e.preventDefault();
+            navigator.clipboard.writeText(data.admin);
+          }}
+        ></i>
+      </td>
       <td>{data.is_approved ? "active" : "inactive"}</td>
       <td>{data.funds_asked / Math.pow(10, 18)} $ETH</td>
-      <td>{data.funds_received}</td>
+      <td>{data.funds_received / Math.pow(10, 18)} $ETH</td>
       <td>
         {data.is_approved && !data.isFilled && data.is_valid ? (
-          <button className="btn btn-block btn-outline-success btn-xs">
+          <button
+            className="btn btn-block btn-outline-success btn-xs"
+            data-toggle="modal"
+            data-target="#invest-modal"
+            onClick={(e) => {
+              e.preventDefault();
+              update_pool_id(data.id);
+            }}
+          >
+            Invest
+          </button>
+        ) : data.is_valid ? (
+          <button className="btn btn-block btn-outline-primary btn-xs disabled">
             Invest
           </button>
         ) : (
@@ -49,7 +77,6 @@ export const Dashboard = () => {
 
   useEffect(() => {
     get_list();
-    console.log(data);
   }, []);
 
   return (

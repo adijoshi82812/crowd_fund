@@ -94,3 +94,12 @@ export const update_is_user = () => {
     });
   };
 };
+
+export const update_pool_id = (pool_id) => {
+  return (dispatch) => {
+    dispatch({
+      type: "update_pool_id_reducer",
+      payload: pool_id,
+    });
+  };
+};

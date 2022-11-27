@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import { actionCreators } from "../store";
@@ -7,9 +8,23 @@ import { Contract } from "../web3";
 export const Sidebar = ({ preload }) => {
   const is_user = useSelector((state) => state.is_user);
   const account = useSelector((state) => state.account);
+  const [createdPool, setCreatedPool] = useState();
 
   const dispatch = useDispatch();
   const { update_account } = bindActionCreators(actionCreators, dispatch);
+
+  const has_users_created_pool = async () => {
+    try {
+      const res = await Contract.methods.has_user_created_pool(account).call();
+      setCreatedPool(res);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    has_users_created_pool();
+  }, [account]);
 
   const handle_cotract_call = async () => {
     try {
@@ -77,13 +92,22 @@ export const Sidebar = ({ preload }) => {
                 Connect wallet
               </button>
             ) : is_user ? (
-              <button
-                className="btn btn-block btn-outline-success"
-                data-toggle="modal"
-                data-target="#modal-default"
-              >
-                Create Fund Request
-              </button>
+              createdPool ? (
+                <button
+                  className="btn btn-block btn-outline-success disabled"
+                  title="You have already requested a fund"
+                >
+                  Create Fund Request
+                </button>
+              ) : (
+                <button
+                  className="btn btn-block btn-outline-success"
+                  data-toggle="modal"
+                  data-target="#modal-default"
+                >
+                  Create Fund Request
+                </button>
+              )
             ) : (
               <button
                 className="btn btn-block btn-outline-danger"

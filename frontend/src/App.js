@@ -4,6 +4,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Footer } from "./components/Footer";
 import { ControlSideBar } from "./components/ControlSideBar";
 import { Modal } from "./components/Modal";
+import { InvestModal } from "./components/InvestModal";
 
 import { useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
@@ -39,6 +40,7 @@ export const App = () => {
       <Footer />
       <ControlSideBar />
       <Modal preload={preload} />
+      <InvestModal />
     </div>
   );
 };
