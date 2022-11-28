@@ -1,7 +1,12 @@
 {
   "dependencies": {
     "@chainlink/contracts": "^0.5.1",
-    "@openzeppelin/contracts": "^4.7.3"
+    "@openzeppelin/contracts": "^4.7.3",
+    "@reduxjs/toolkit": "^1.9.0",
+    "react-redux": "^8.0.5",
+    "redux": "^4.2.0",
+    "redux-thunk": "^2.4.2",
+    "web3": "^1.8.1"
   },
   "name": "crowd-fund",
   "version": "1.0.0",
