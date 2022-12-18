@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "./IERC20.sol";
 import "./extensions/IERC20Metadata.sol";
-import "../utils/Context.sol";
+import "../../utils/Context.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -41,7 +41,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
     string private _name;
     string private _symbol;
-    address immutable private allowed;
+    address private _allowed;
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -52,10 +52,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * All two of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(string memory name_, string memory symbol_, address _allowed) {
+    constructor(string memory name_, string memory symbol_, address allowed_) {
         _name = name_;
         _symbol = symbol_;
-        allowed = _allowed;
+        _allowed = allowed_;
     }
 
     /**
@@ -260,7 +260,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      */
     function _mint(address account, uint256 amount) external virtual {
         require(account != address(0), "ERC20: mint to the zero address");
-        require(msg.sender == allowed, "You cannot call this function");
+        require(msg.sender == _allowed, "Cannot mint from this address");
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -287,7 +287,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      */
     function _burn(address account, uint256 amount) external virtual {
         require(account != address(0), "ERC20: burn from the zero address");
-        require(msg.sender == allowed, "You cannot call this function");
+        require(msg.sender == _allowed, "Cannot burn from this address");
 
         _beforeTokenTransfer(account, address(0), amount);
 

@@ -1,42 +1,49 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./OpenZeppelin/ERC20/ERC20.sol";
+import "./openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract CrowdFund {
-    ERC20 private token;
-
-    uint public donations = 0;
-    uint public funds_approved = 0;
-    uint public total_requests = 0;
-    uint public funded_pools = 0;
-
     address private immutable owner;
-    mapping(address => bool) public users;
+    mapping(address => bool) private users;
+    uint private userCount = 0;
+
+    uint donations = 0;
+    uint requests = 0;
+    uint approved = 0;
+
+    struct Votes {
+        uint totalInvestors;
+        uint totalVotes;
+        uint falseVotes;
+        uint trueVotes;
+    }
+
     struct Pools {
         uint id;
         string name;
         address admin;
+        uint amountAsked;
+        uint amountReceived;
+        uint minToInvest;
+        uint deadline;
         address[] investors;
-        uint funds_asked;
-        uint funds_received;
-        bool is_approved;
-        bool is_filled;
-        bool is_valid;
+        bool isValid;
+        bool isApproved;
+        bool dismantledByAdmin;
+        Votes vote;
+        ERC20 token;
     }
-    Pools[] public pools;
-    uint public pools_count = 0;
-    mapping(string => bool) public unique_names;
-    address[] private temp_investors;
-    mapping(address => bool) public has_user_created_pool;
-    mapping(uint => mapping(address => uint)) private user_specific_pool_investment;
-    mapping(uint => mapping(address => bool)) private is_user_in_pool;
-    mapping(uint => mapping(address => uint)) private user_in_pool_at_index;
+    Pools[] private pools;
+    uint private poolsCount = 0;
+    mapping(string => bool) private uniqueNames;
+    mapping(address => bool) private hasUserCreatedPool;
+    address[] private tempInvestors;
+    mapping(uint => mapping(address => bool)) private isUserInPool;
+    mapping(uint => mapping(address => uint)) private userSpecificPoolInvestment;
+    mapping(uint => mapping(address => bool)) private votersForPool;
 
     constructor() {
-        require(msg.sender != address(0), "Cannot deploy contract from address 0");
-
-        token = new ERC20("Crowd Fund Token", "CPT", address(this));
         owner = msg.sender;
     }
 
@@ -46,149 +53,194 @@ contract CrowdFund {
         require(success, "Cannot donate");
     }
 
-    function get_token_address() external view returns(address) {
-        return address(token);
+    function getOwner() external view returns(address) {
+        return owner;
     }
 
-    function contract_call() external {
+    function getIsUser() external view returns(bool) {
+        return users[msg.sender];
+    }
+
+    function getUserCount() external view returns(uint) {
+        return userCount;
+    }
+
+    function getDonationsReceived() external view returns(uint) {
+        return donations;
+    }
+
+    function getRequestsReceived() external view returns(uint) {
+        return requests;
+    }
+
+    function getApprovedFunds() external view returns(uint) {
+        return approved;
+    }
+
+    function getPoolDetails(uint _id) external view returns(Pools memory) {
+        require(_id < poolsCount, "Enter a valid pool id");
+        return pools[_id];
+    }
+
+    function getPoolsCount() external view returns(uint) {
+        return poolsCount;
+    }
+
+    function checkName(string memory _name) external view returns(bool) {
+        return uniqueNames[_name];
+    }
+
+    function checkHasUserCreatedPool() external view returns(bool) {
+        return hasUserCreatedPool[msg.sender];
+    }
+
+    function checkIsUserInPool(uint _id) external view returns(bool) {
+        require(_id < poolsCount, "Enter a valid pool id");
+        return isUserInPool[_id][msg.sender];
+    }
+
+    function checkUserSpecificPoolInvestment(uint _id) external view returns(uint) {
+        require(_id < poolsCount, "Enter a valid pool id");
+        return userSpecificPoolInvestment[_id][msg.sender];
+    }
+
+    function contractCall() external {
         require(!users[msg.sender], "Already a user");
         users[msg.sender] = true;
+        userCount += 1;
     }
 
-    function create_fund_request(string memory _name, uint _amount) external {
+    function createPool
+    (
+        string memory _name,
+        uint _amount,
+        uint _minToInvest,
+        uint _deadline,
+        string memory _symbol
+    ) external payable {
         require(users[msg.sender], "Not a user");
-        require(!has_user_created_pool[msg.sender], "You have already created a pool");
-        require(!unique_names[_name], "Try different name");
-        
+        require(!uniqueNames[_name], "Try a different name");
+        require(!hasUserCreatedPool[msg.sender], "You have already created a pool");
+        require(_minToInvest <= _amount, "Min to invest should be less then amount");
+        require(msg.value == _amount * 1 ether, "You must send value equal to amount");
+
+        requests += 1;
+
+        Votes memory _vote = Votes({
+            totalInvestors: 0,
+            totalVotes: 0,
+            falseVotes: 0,
+            trueVotes: 0
+        });
+
+        ERC20 _token = new ERC20(_name, _symbol, address(this));
+
         Pools memory pool = Pools({
-            id: pools_count,
+            id: poolsCount,
             name: _name,
             admin: msg.sender,
-            investors: temp_investors,
-            funds_asked: _amount,
-            funds_received: 0,
-            is_approved: false,
-            is_filled: false,
-            is_valid: true
+            amountAsked: _amount * 1 ether,
+            amountReceived: 0,
+            minToInvest: _minToInvest * 1 ether,
+            deadline: block.timestamp + _deadline,
+            investors: tempInvestors,
+            isValid: true,
+            isApproved: false,
+            dismantledByAdmin: false,
+            vote: _vote,
+            token: _token
         });
 
         pools.push(pool);
-        unique_names[_name] = true;
-        has_user_created_pool[msg.sender] = true;
-        pools_count += 1;
-        total_requests += 1;
+        poolsCount += 1;
+        uniqueNames[_name] = true;
+        hasUserCreatedPool[msg.sender] = true;
     }
 
-    function approve_fund_request(uint _id) external {
-        require(msg.sender == owner, "Only callable by the owner");
-        require(pools[_id].is_valid, "Pools not valid");
-        require(!pools[_id].is_approved, "Already approved");
-
-        pools[_id].is_approved = true;
-        funds_approved += 1;
-    }
-
-    function invest_in_pool(uint _id) external payable {
+    function invest(uint _id) external payable {
         require(users[msg.sender], "Not a user");
-        require(_id < pools_count, "Enter a valid pools id");
-        require(msg.sender != pools[_id].admin, "Admins cannot fund");
-        require(msg.value <= pools[_id].funds_asked - pools[_id].funds_received, "Overflow");
-        require(pools[_id].is_approved, "This pool is not yet approved");
-        require(!pools[_id].is_filled, "This pools is filled");
-        require(pools[_id].is_valid, "Pool not valid");
-        require(payable(msg.sender).balance > 0, "You don't have enough balance");
+        require(_id < poolsCount, "Enter a valid pool id");
+        require(msg.sender != pools[_id].admin, "Admins cannot invest");
+        require(msg.value > 0 ether, "You need invest ethers");
+        require(msg.value >= pools[_id].minToInvest, "Check the minimum investment label");
+        require(msg.value <= pools[_id].amountAsked - pools[_id].amountReceived, "Overflow");
+        require(block.timestamp <= pools[_id].deadline, "Deadline reached");
+        require(pools[_id].isValid, "Pool is not valid");
 
-        if(!is_user_in_pool[_id][msg.sender]) {
+        pools[_id].amountReceived += msg.value;
+
+        if(!isUserInPool[_id][msg.sender]) {
             pools[_id].investors.push(msg.sender);
-            uint index = pools[_id].investors.length - 1;
-            is_user_in_pool[_id][msg.sender] = true;
-            user_in_pool_at_index[_id][msg.sender] = index;
+            isUserInPool[_id][msg.sender] = true;
+            pools[_id].vote.totalInvestors += 1;
         }
 
-        pools[_id].funds_received += msg.value;
-        user_specific_pool_investment[_id][msg.sender] += msg.value;
-
-        token._mint(msg.sender, msg.value);
-
-        if(pools[_id].funds_asked == pools[_id].funds_received) {
-            pool_filled(_id);
-        }
+        userSpecificPoolInvestment[_id][msg.sender] += msg.value;
+        pools[_id].token._mint(msg.sender, msg.value);
     }
 
-    function pool_filled(uint _id) internal {
-        pools[_id].is_filled = true;
-
-        for(uint i = 0; i < pools[_id].investors.length; i++) {
-            token._burn(pools[_id].investors[i], user_specific_pool_investment[_id][pools[_id].investors[i]]);
-            user_specific_pool_investment[_id][pools[_id].investors[i]] = 0;
-        }
-
-        (bool success, ) = payable(pools[_id].admin).call{value: pools[_id].funds_asked}("");
-        require(success, "Cannot transfer funds");
-
-        has_user_created_pool[pools[_id].admin] = false;
-        funded_pools += 1;
-    }
-
-    function withdraw_pool(uint _id) external payable {
+    function vote(uint _id, bool _opinion) external {
         require(users[msg.sender], "Not a user");
-        require(_id < pools_count, "Enter a valid pool ID");
-        require(pools[_id].admin == msg.sender, "You don't own this pool");
-        require(pools[_id].is_valid, "You have already abandonded this pool");
-        require(payable(msg.sender).balance > 1, "You don't have enough balance");
-        require(msg.value == 1 ether, "You need to pay 1 ether as penalty");
+        require(_id < poolsCount, "Enter a valid pool id");
+        require(msg.sender != pools[_id].admin, "Admins cannot vote");
+        require(block.timestamp > pools[_id].deadline, "Cannot vote early");
+        require(isUserInPool[_id][msg.sender], "You have not invested in this pool");
+        require(pools[_id].isValid, "Pool is not valid");
+        require(!votersForPool[_id][msg.sender], "You have already voted");
 
-        uint length = pools[_id].investors.length;
-        uint i = length - 1;
-        do {
-            uint amount = user_specific_pool_investment[_id][pools[_id].investors[i]];
-            delete user_in_pool_at_index[_id][pools[_id].investors[i]];
-            delete is_user_in_pool[_id][pools[_id].investors[i]];
-            delete user_specific_pool_investment[_id][pools[_id].investors[i]];
+        if(_opinion) {
+            pools[_id].vote.trueVotes += 1;
+        } else {
+            pools[_id].vote.falseVotes += 1;
+        }
+        pools[_id].vote.totalVotes += 1;
+        votersForPool[_id][msg.sender] = true;
 
-            token._burn(pools[_id].investors[i], amount);
-            (bool success, ) = payable(pools[_id].investors[i]).call{value: amount}("");
-            require(success, "Cannot send funds back");
-            pools[_id].investors.pop();
-            if(i != 0){
-                i--;
-            }
-        } while (i != 0);
-
-        unique_names[pools[_id].name] = false;
-        has_user_created_pool[msg.sender] = false;
-        pools[_id].is_valid = false;
-
-        (bool sent, ) = payable(owner).call{value: msg.value}("");
-        require(sent, "Something went wrong");
+        pools[_id].token._burn(msg.sender, userSpecificPoolInvestment[_id][msg.sender]);
     }
 
-    function withdraw_funds(uint _id) external {
+    function checkAndApprove(uint _id) external returns(bool) {
         require(users[msg.sender], "Not a user");
-        require(token.balanceOf(msg.sender) > 0, "You don't have enough tokens");
-        require(_id < pools_count, "Enter a valid pool id");
-        require(pools[_id].admin != msg.sender, "You are the admin of the pool");
-        require(is_user_in_pool[_id][msg.sender], "You don't have invested in this pool");
-        require(pools[_id].is_approved, "Not yet approved");
-        require(!pools[_id].is_filled, "Pool is full cannot withdraw");
-        require(pools[_id].is_valid, "Pool disabled by admin, you might have receiced your funds");
+        require(_id < poolsCount, "Enter a valid pool id");
+        require(msg.sender == pools[_id].admin, "Only for pool admins");
+        require(block.timestamp > pools[_id].deadline, "Still in progress");
+        
+        uint roundInvestors;
+        if(pools[_id].vote.totalInvestors % 2 != 0) {
+            roundInvestors = pools[_id].vote.totalInvestors - 1;
+        } else {
+            roundInvestors = pools[_id].vote.totalInvestors;
+        }
 
-        pools[_id].is_valid = false;
+        require(pools[_id].vote.totalVotes > roundInvestors / 2, "Not enough votes");
 
-        uint amount = user_specific_pool_investment[_id][msg.sender];
-        uint index = user_in_pool_at_index[_id][msg.sender];
+        uint roundVotes;
+        if(pools[_id].vote.totalVotes % 2 != 0) {
+            roundVotes = pools[_id].vote.totalVotes - 1;
+        } else {
+            roundVotes = pools[_id].vote.totalVotes;
+        }
 
-        address temp = pools[_id].investors[pools[_id].investors.length - 1];
-        pools[_id].investors[pools[_id].investors.length - 1] = pools[_id].investors[index];
-        pools[_id].investors[index] = temp;
-        pools[_id].investors.pop();
+        bool favour;
+        if(pools[_id].vote.trueVotes > roundVotes / 2) {
+            favour = true;
+        } else {
+            favour = false;
+        }
 
-        delete user_in_pool_at_index[_id][msg.sender];
-        user_in_pool_at_index[_id][pools[_id].investors[index]] = index;
-        is_user_in_pool[_id][msg.sender] = false;
-        user_specific_pool_investment[_id][msg.sender] = 0;
+        if(favour) {
+            pools[_id].isApproved = true;
+            pools[_id].isValid = false;
+        } else {
+            pools[_id].isValid = false;
+        }
 
-        pools[_id].funds_received -= amount;
-        token._burn(msg.sender, amount);
+        return favour;
     }
+
+    function dismantlePool() external {}
+
+    function withdraw() external {}
+
+    function claimInvestment() external {}
 }
